@@ -1,21 +1,16 @@
-def chunk_text(text, chunk_size=1000, overlap=200):
+def find_page(offset, page_map):
+    for start, end, page_num in page_map:
+        if start <= offset < end:
+            return page_num
+    return page_map[-1][2] if page_map else None
+
+def chunk_text(text, page_map, chunk_size=1000, overlap=200):
     chunks = []
     start = 0
     while start < len(text):
         end = start + chunk_size
-        chunk = text[start:end]
-        chunks.append(chunk)
+        chunk_str = text[start:end]
+        page_num = find_page(start, page_map)
+        chunks.append({"text": chunk_str, "page": page_num})
         start += chunk_size - overlap
     return chunks
-
-if __name__ == "__main__":
-    from load_book import load_pdf
-    
-    text = load_pdf(r"book\Hands-On_Machine_Learning_with_Scikit-Learn_Keras_and_Tensorflow_-_Aurelien_Geron.pdf")
-    chunks = chunk_text(text)
-    
-    print(f"Total chunks: {len(chunks)}")
-    print("\n--- Chunk 50 ---")
-    print(chunks[50])
-    print("\n--- Chunk 51 ---")
-    print(chunks[51])

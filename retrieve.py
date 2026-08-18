@@ -1,39 +1,35 @@
-import numpy as np
-import pickle
-from embed import get_model
+import chromadb
+from sentence_transformers import CrossEncoder
 
-def cosine_similarity(a, b):
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+def load_db():
+    client = chromadb.PersistentClient(path="chroma_db")
+    collection = client.get_or_create_collection("book_chunks")
+    return collection
 
-def load_data():
-    embeddings = np.load("embeddings.npy")
-    with open("chunks.pkl", "rb") as f:
-        chunks = pickle.load(f)
-    return embeddings, chunks
+def get_reranker():
+    return CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
 
-def retrieve(query, model, embeddings, chunks, top_k=5, threshold=0.3):
-    query_vec = model.encode(query)
+def retrieve(query, model, collection, reranker, top_k=5, fetch_k=15):
+    query_vec = model.encode(query).tolist()
     
-    scores = []
-    for i, chunk_vec in enumerate(embeddings):
-        score = cosine_similarity(query_vec, chunk_vec)
-        scores.append((score, i))
+    results = collection.query(
+        query_embeddings=[query_vec],
+        n_results=fetch_k
+    )
     
-    scores.sort(reverse=True)
-    top_results = scores[:top_k]
+    docs = results["documents"][0]
+    metadatas = results["metadatas"][0]
     
-    # filter out weak matches
-    results = [(chunks[idx], score) for score, idx in top_results if score >= threshold]
-    return results
-   
-
-if __name__ == "__main__":
-    model = get_model()
-    embeddings, chunks = load_data()
+    if not docs:
+        return []
     
-    query = "What is the difference between supervised and unsupervised learning?"
-    results = retrieve(query, model, embeddings, chunks)
+    # rerank: cross-encoder scores (query, doc) pairs directly — more accurate than vector similarity alone
+    pairs = [[query, doc] for doc in docs]
+    rerank_scores = reranker.predict(pairs)
     
-    for chunk, score in results:
-        print(f"\n--- Score: {score:.4f} ---")
-        print(chunk[:300])
+    combined = list(zip(docs, metadatas, rerank_scores))
+    combined.sort(key=lambda x: x[2], reverse=True)
+    
+    top_results = combined[:top_k]
+    # returns list of (chunk_text, {"page": N}, rerank_score)
+    return top_results
