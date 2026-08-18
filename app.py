@@ -40,7 +40,7 @@ with st.sidebar:
         except Exception as e:
             st.error(f"Error: {e}")
 
-# --- Main chat interface (unchanged) ---
+# --- Main chat interface ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 

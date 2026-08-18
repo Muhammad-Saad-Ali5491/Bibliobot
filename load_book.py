@@ -5,7 +5,7 @@ def load_pdf(filepath):
     print(f"Number of pages: {len(reader.pages)}")
     
     full_text = ""
-    page_map = []  # (start_offset, end_offset, page_number)
+    page_map = []  
     
     for i, page in enumerate(reader.pages):
         text = page.extract_text() or ""

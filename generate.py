@@ -54,7 +54,6 @@ def handle_book_qa(query, model, collection, reranker, history):
     if not results:
         return "I couldn't find that in the book.", []
     
-    # build context with page numbers so the LLM can cite them
     context_parts = []
     for doc, meta, score in results:
         page = meta.get("page", "unknown")
@@ -81,7 +80,7 @@ New question: {query}
 Answer:"""
     
     response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
-    return response.text, results   # return raw results too, for displaying in UI
+    return response.text, results   
 
 
 def ask(query, model, collection, reranker, history=None):

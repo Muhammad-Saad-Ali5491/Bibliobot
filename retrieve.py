@@ -23,7 +23,6 @@ def retrieve(query, model, collection, reranker, top_k=5, fetch_k=15):
     if not docs:
         return []
     
-    # rerank: cross-encoder scores (query, doc) pairs directly — more accurate than vector similarity alone
     pairs = [[query, doc] for doc in docs]
     rerank_scores = reranker.predict(pairs)
     
@@ -31,5 +30,4 @@ def retrieve(query, model, collection, reranker, top_k=5, fetch_k=15):
     combined.sort(key=lambda x: x[2], reverse=True)
     
     top_results = combined[:top_k]
-    # returns list of (chunk_text, {"page": N}, rerank_score)
     return top_results
